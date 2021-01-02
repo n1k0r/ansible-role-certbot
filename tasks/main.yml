@@ -1,0 +1,42 @@
+- debug:
+    var: service_path
+
+- name: Create directory
+  file:
+    path: "{{ service_path }}"
+    state: directory
+    owner: "{{ account.user }}"
+    group: "{{ account.user }}"
+  become: yes
+
+- name: Copy files
+  copy:
+    src: "{{ item.name }}"
+    dest: "{{ service_path }}/{{ item.name }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - name: docker-compose.yml
+      mode: "0644"
+    - name: renew.sh
+      mode: "0755"
+
+- name: Template configuration
+  template:
+    src: cloudflare.ini.j2
+    dest: "{{ service_path }}/cloudflare.ini"
+
+- name: Get initial certificates
+  command:
+    cmd: "docker-compose run --rm certbot certonly -n -d {{ domain }},*.{{ domain }} -m {{ certbot.email }} --agree-tos --dns-cloudflare --dns-cloudflare-credentials /etc/cloudflare.ini"
+    chdir: "{{ service_path }}"
+    creates: "{{ service_path }}/config/live/{{ domain }}/privkey.pem"
+  become: yes
+
+- name: Set crontab
+  cron:
+    name: "renew certificates"
+    user: root
+    minute: "0"
+    hour: "4"
+    job: "/bin/bash {{ service_path }}/renew.sh > /dev/null 2>&1"
+  become: yes
