@@ -10,6 +10,8 @@ certbot:
   dns_cloudflare:
     email: cloudflare.account@mail.service
     api_key: 286755fad04869ca523320acce0dc6a43320a
+  after_renew:
+    - "{{ nginx_scripts.reload }}"
 ```
 
 Account dictionary is also expected: https://gitlab.com/n1k0r-ansible/roles/master

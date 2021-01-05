@@ -1,9 +1,9 @@
 - debug:
-    var: service_path
+    var: certbot_path
 
 - name: Create directory
   file:
-    path: "{{ service_path }}"
+    path: "{{ certbot_path }}"
     state: directory
     owner: "{{ account.user }}"
     group: "{{ account.user }}"
@@ -12,24 +12,28 @@
 - name: Copy files
   copy:
     src: "{{ item.name }}"
-    dest: "{{ service_path }}/{{ item.name }}"
+    dest: "{{ certbot_path }}/{{ item.name }}"
     mode: "{{ item.mode }}"
   loop:
     - name: docker-compose.yml
-      mode: "0644"
-    - name: renew.sh
-      mode: "0755"
+      mode: "644"
 
 - name: Template configuration
   template:
     src: cloudflare.ini.j2
-    dest: "{{ service_path }}/cloudflare.ini"
+    dest: "{{ certbot_path }}/cloudflare.ini"
+
+- name: Template script
+  template:
+    src: renew.sh.j2
+    dest: "{{ certbot_path }}/renew.sh"
+    mode: "755"
 
 - name: Get initial certificates
   command:
     cmd: "docker-compose run --rm certbot certonly -n -d {{ domain }},*.{{ domain }} -m {{ certbot.email }} --agree-tos --dns-cloudflare --dns-cloudflare-credentials /etc/cloudflare.ini"
-    chdir: "{{ service_path }}"
-    creates: "{{ service_path }}/config/live/{{ domain }}/privkey.pem"
+    chdir: "{{ certbot_path }}"
+    creates: "{{ certbot_path }}/config/live/{{ domain }}/privkey.pem"
   become: yes
 
 - name: Set crontab
@@ -38,5 +42,5 @@
     user: root
     minute: "0"
     hour: "4"
-    job: "/bin/bash {{ service_path }}/renew.sh > /dev/null 2>&1"
+    job: "/bin/bash {{ certbot_path }}/renew.sh > /dev/null 2>&1"
   become: yes
