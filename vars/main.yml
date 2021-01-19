@@ -1,0 +1,4 @@
+certbot_cert_prefix: "{{ certbot_path }}/config/live/"
+certbot_cert_suffix: "/fullchain.pem"
+certbot_key_prefix: "{{ certbot_path }}/config/live/"
+certbot_key_suffix: "/privkey.pem"
