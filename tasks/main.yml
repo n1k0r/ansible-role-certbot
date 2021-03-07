@@ -1,42 +1,51 @@
-- debug:
-    var: certbot_path
-
-- name: Create directory
+- name: Create directories
   file:
-    path: "{{ certbot_path }}"
+    path: "{{ certbot_path }}/{{ item }}"
     state: directory
     owner: "{{ account.user }}"
     group: "{{ account.user }}"
+  loop:
+    - accounts
+    - ansible
   become: yes
 
-- name: Copy files
-  copy:
-    src: "{{ item.name }}"
-    dest: "{{ certbot_path }}/{{ item.name }}"
-    mode: "{{ item.mode }}"
-  loop:
-    - name: docker-compose.yml
-      mode: "644"
+- name: Template compose configuration
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ certbot_path }}/docker-compose.yml"
+    mode: "644"
 
-- name: Template configuration
+- name: Template accounts configuration
   template:
     src: cloudflare.ini.j2
-    dest: "{{ certbot_path }}/cloudflare.ini"
+    dest: "{{ certbot_path }}/accounts/{{ item.key }}.ini"
+    mode: "600"
+  when: item.value.type == "cloudflare"
+  loop: "{{ certbot.accounts | default({}) | dict2items }}"
 
-- name: Template script
+- name: Copy certbot script
+  copy:
+    src: certbot
+    dest: "{{ certbot_path }}/certbot"
+    mode: "755"
+
+- name: Get certificates
+  include_tasks: get_cert.yml
+  loop: "{{ certbot.certs | default({}) | dict2items }}"
+
+- name: Template renew script
   template:
     src: renew.sh.j2
     dest: "{{ certbot_path }}/renew.sh"
     mode: "755"
 
-- name: Get initial certificates
-  command:
-    cmd: "docker-compose run --rm certbot certonly -n -d {{ domain }},*.{{ domain }} -m {{ certbot.email }} --agree-tos --dns-cloudflare --dns-cloudflare-credentials /etc/cloudflare.ini"
-    chdir: "{{ certbot_path }}"
-    creates: "{{ certbot_path }}/config/live/{{ domain }}/privkey.pem"
+- name: Install cron
+  package:
+    name: cron
+    state: present
   become: yes
 
-- name: Set crontab
+- name: Configure cron task for certificates renew
   cron:
     name: "renew certificates"
     user: root

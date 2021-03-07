@@ -4,6 +4,10 @@ services:
   certbot:
     image: certbot/dns-cloudflare
     volumes:
+      - ./accounts:/etc/accounts
       - ./config:/etc/letsencrypt
       - ./data:/var/lib/letsencrypt
-      - ./cloudflare.ini:/etc/cloudflare.ini
+
+{% if certbot.webroot is defined %}
+      - {{ certbot.webroot }}:/var/www/acme-challenge
+{% endif %}

@@ -1,0 +1,62 @@
+- name: Check cert
+  stat:
+    path: "{{ certbot_cert | format(item.key) }}"
+  become: yes
+  register: cert
+
+- name: Check hash
+  stat:
+    path: "{{ certbot_path }}/ansible/{{ item.key }}"
+  when: cert.stat.exists
+  register: hashfile
+
+- name: Get hash
+  slurp:
+    src: "{{ certbot_path }}/ansible/{{ item.key }}"
+  when: cert.stat.exists and hashfile.stat.exists
+  register: hash
+
+- when: not cert.stat.exists or not hashfile.stat.exists or hash.content | b64decode != item.value | hash("md5")
+  block:
+  - name: Get certificates (DNS method)
+    command:
+      cmd: "docker-compose run --rm certbot certonly
+        --staging
+        -n
+        --agree-tos
+        {% if certbot.email is defined %}
+          -m {{ certbot.email }}
+        {% else %}
+          --register-unsafely-without-email
+        {% endif %}
+        --cert-name {{ item.key }}
+        -d {{ item.value.domains | join(',') }}
+        --dns-cloudflare
+        --dns-cloudflare-credentials /etc/accounts/{{ item.value.account }}.ini"
+      chdir: "{{ certbot_path }}"
+    when: item.value.account is defined
+    become: yes
+
+  - name: Get certificates (webroot method)
+    command:
+      cmd: "docker-compose run --rm certbot certonly
+        --staging
+        -n
+        --agree-tos
+        {% if certbot.email is defined %}
+          -m {{ certbot.email }}
+        {% else %}
+          --register-unsafely-without-email
+        {% endif %}
+        --cert-name {{ item.key }}
+        -d {{ item.value.domains | join(',') }}
+        --webroot
+        --webroot-path /var/www/acme-challenge"
+      chdir: "{{ certbot_path }}"
+    when: item.value.account is not defined
+    become: yes
+
+- name: Update hash
+  copy:
+    content: "{{ item.value | hash('md5') }}"
+    dest: "{{ certbot_path }}/ansible/{{ item.key }}"

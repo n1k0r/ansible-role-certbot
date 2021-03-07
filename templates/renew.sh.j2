@@ -6,8 +6,6 @@
 cd "$(dirname "$0")"
 docker-compose run --rm certbot renew
 
-{% if "after_renew" in certbot %}
-{% for cmd in certbot.after_renew %}
-{{ cmd  }}
+{% for cmd in certbot.after_renew | default([]) %}
+{{ cmd }}
 {% endfor %}
-{% endif %}
