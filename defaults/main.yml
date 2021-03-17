@@ -1,2 +1,0 @@
-certbot_service_dir: certbot
-certbot_path: "{{ services_path }}/{{ certbot_service_dir }}"

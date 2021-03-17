@@ -1,2 +1,4 @@
-certbot_cert: "{{ certbot_path }}/config/live/%s/fullchain.pem"
-certbot_key: "{{ certbot_path }}/config/live/%s/privkey.pem"
+certbot_path: "/etc/letsencrypt"
+certbot_ansible_path: "/etc/letsencrypt-ansible"
+certbot_cert: "{{ certbot_path }}/live/%s/fullchain.pem"
+certbot_key: "{{ certbot_path }}/live/%s/privkey.pem"

@@ -1,0 +1,51 @@
+- name: Install packages
+  package:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+
+- name: Create directories
+  file:
+    path: "{{ certbot_ansible_path }}/{{ item }}"
+    state: directory
+    mode: "600"
+  loop:
+    - accounts
+    - hash
+
+- name: Create acme webroot directory
+  file:
+    path: "{{ certbot.webroot }}"
+    state: directory
+  when: certbot.webroot is defined
+
+- name: Template accounts configuration
+  template:
+    src: cloudflare.ini.j2
+    dest: "{{ certbot_ansible_path }}/accounts/{{ item.key }}.ini"
+    mode: "600"
+  when: item.value.type == "cloudflare"
+  loop: "{{ certbot.accounts | default({}) | dict2items }}"
+
+- name: Create renew hook directory
+  file:
+    path: "{{ certbot_path }}/renewal-hooks/deploy"
+    state: directory
+
+- name: Template renew hook script
+  template:
+    src: renew.sh.j2
+    dest: "{{ certbot_ansible_path }}/renew.sh"
+    mode: "755"
+
+- name: Activate renew hook script
+  file:
+    src: "{{ certbot_ansible_path }}/renew.sh"
+    path: "{{ certbot_path }}/renewal-hooks/deploy/ansible.sh"
+    state: link
+    force: yes
+
+- name: Get certificates
+  include_tasks: get_cert.yml
+  loop: "{{ certbot.certs | default({}) | dict2items }}"
