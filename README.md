@@ -7,7 +7,7 @@ certbot:
   email: admin.account@mail.service
   after_renew:
     - "{{ nginx_scripts.reload }}"
-  webroot: "/var/www/acme" # used for dns method
+  webroot: "/var/www/acme" # used for webroot method
   accounts: # used for dns method
     main:
       type: cloudflare # only cloudflare supported
