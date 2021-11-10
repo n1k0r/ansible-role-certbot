@@ -2,8 +2,15 @@
   package:
     name:
       - certbot
-      - python3-certbot-dns-cloudflare
+      - python3-pip
     state: present
+
+- name: Install DNS plugins
+  pip:
+    name:
+      - certbot-dns-cloudflare
+      - certbot-dns-duckdns
+    executable: pip3
 
 - name: Create directories
   file:
@@ -22,10 +29,9 @@
 
 - name: Template accounts configuration
   template:
-    src: cloudflare.ini.j2
+    src: "{{ item.value.type }}.ini.j2"
     dest: "{{ certbot_ansible_path }}/accounts/{{ item.key }}.ini"
     mode: "600"
-  when: item.value.type == "cloudflare"
   loop: "{{ certbot.accounts | default({}) | dict2items }}"
 
 - name: Create renew hook directory

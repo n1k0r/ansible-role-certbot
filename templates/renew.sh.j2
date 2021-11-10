@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# crontab -e
-# 0 4 * * * /bin/bash /srv/certbot/renew.sh > /dev/null 2>&1
-
 {% for cmd in certbot.after_renew | default([]) %}
 {{ cmd }}
 {% endfor %}

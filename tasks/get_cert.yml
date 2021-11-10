@@ -18,39 +18,49 @@
 
 - when: not cert.stat.exists or not hashfile.stat.exists or hash.content | b64decode != item.value | hash("md5")
   block:
-  - name: Get certificates (DNS method)
-    command:
-      cmd: "certbot certonly
-        -n
-        --agree-tos
-        {% if certbot.email is defined %}
-          -m {{ certbot.email }}
-        {% else %}
-          --register-unsafely-without-email
-        {% endif %}
-        --cert-name {{ item.key }}
-        -d {{ item.value.domains | join(',') }}
-        --dns-cloudflare
-        --dns-cloudflare-credentials {{ certbot_ansible_path }}/accounts/{{ item.value.account }}.ini"
-    when: item.value.account is defined
-    become: yes
+    - when: certbot.accounts is defined and item.value.account is defined
+      block:
+        - name: Get DNS account info
+          set_fact:
+            certbot_account: "{{ certbot.accounts[item.value.account] }}"
 
-  - name: Get certificates (webroot method)
-    command:
-      cmd: "certbot certonly
-        -n
-        --agree-tos
-        {% if certbot.email is defined %}
-          -m {{ certbot.email }}
-        {% else %}
-          --register-unsafely-without-email
-        {% endif %}
-        --cert-name {{ item.key }}
-        -d {{ item.value.domains | join(',') }}
-        --webroot
-        --webroot-path {{ certbot.webroot }}"
-    when: item.value.account is not defined
-    become: yes
+        - name: Get certificates (DNS method)
+          command:
+            cmd: "certbot certonly
+              -n
+              --agree-tos
+              {% if certbot.email is defined %}
+                -m {{ certbot.email }}
+              {% else %}
+                --register-unsafely-without-email
+              {% endif %}
+              --cert-name {{ item.key }}
+              -d {{ item.value.domains | join(',') }}
+              {% if certbot_account.type == 'cloudflare' %}
+                --dns-cloudflare
+                --dns-cloudflare-credentials {{ certbot_ansible_path }}/accounts/{{ item.value.account }}.ini
+              {% elif certbot_account.type == 'duckdns' %}
+                --authenticator dns-duckdns
+                --dns-duckdns-credentials {{ certbot_ansible_path }}/accounts/{{ item.value.account }}.ini
+              {% endif %}"
+          become: yes
+
+    - name: Get certificates (webroot method)
+      command:
+        cmd: "certbot certonly
+          -n
+          --agree-tos
+          {% if certbot.email is defined %}
+            -m {{ certbot.email }}
+          {% else %}
+            --register-unsafely-without-email
+          {% endif %}
+          --cert-name {{ item.key }}
+          -d {{ item.value.domains | join(',') }}
+          --webroot
+          --webroot-path {{ certbot.webroot }}"
+      when: item.value.account is not defined
+      become: yes
 
 - name: Update hash
   copy:
