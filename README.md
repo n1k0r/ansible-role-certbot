@@ -23,5 +23,3 @@ certbot:
 ```
 
 Webserver have to expose folder `certbot.webroot` as `/.well-known/acme-challenge/` for all managed domains.
-
-Account dictionary is also expected: https://gitlab.com/n1k0r-ansible/roles/master
