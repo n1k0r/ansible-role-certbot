@@ -2,15 +2,8 @@
   package:
     name:
       - certbot
-      - python3-pip
+      - python3-certbot-dns-cloudflare
     state: present
-
-- name: Install DNS plugins
-  pip:
-    name:
-      - certbot-dns-cloudflare
-      - certbot-dns-duckdns
-    executable: pip3
 
 - name: Create directories
   file:

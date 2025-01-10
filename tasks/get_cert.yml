@@ -39,9 +39,6 @@
               {% if certbot_account.type == 'cloudflare' %}
                 --dns-cloudflare
                 --dns-cloudflare-credentials {{ certbot_ansible_path }}/accounts/{{ item.value.account }}.ini
-              {% elif certbot_account.type == 'duckdns' %}
-                --authenticator dns-duckdns
-                --dns-duckdns-credentials {{ certbot_ansible_path }}/accounts/{{ item.value.account }}.ini
               {% endif %}"
           become: yes
 
